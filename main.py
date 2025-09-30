@@ -198,26 +198,49 @@ def lock_trailer(opt, siren):
     return 0
 
 
+def alarm_toolbox(opt, msg):
+    global ALARM_MSG, ALARM_STATUS, ALARM_ACTIVATED_TIME, GONOW, GONOW_MSG, ALARM_REPORT, ALARM_DURATION, START_ROUTINE
+    if opt == 1 and MAINTENANCE_MODE is False and ALARM_STATUS is False and START_ROUTINE is False:
+        # ACTIVATE ALARM - toolbox ignores RENT_STATUS
+        print(" !! TOOLBOX ALARM ACTIVATED -- ")
+        ALARM_STATUS = True
+        ALARM_ACTIVATED_TIME = time.time()
+        ALARM_MSG = str(msg)
+        lock_trailer(1, False)
+        SIREN_TRAILER.value(1)
+        GONOW = True
+        GONOW_MSG = "CMD:ALARM:TOOLBOX:" + str(msg)
+        ALARM_REPORT = 1
+    elif opt == 2:
+        print(" !! TOOLBOX ALARM DE-ACTIVATED -- ", end="")
+        ALARM_STATUS = False
+        ALARM_ACTIVATED_TIME = 0
+        ALARM_MSG = ""
+        SIREN_TRAILER.value(0)
+        GONOW = True
+        GONOW_MSG = "CMD:UNALARM:TOOLBOX:" + str(msg)
+        ALARM_REPORT = 2
+        ALARM_DURATION = 20
+        print(f"ACTIVATED -- {ALARM_REPORT}")
+
 def alarm(opt, msg):
     global ALARM_MSG, ALARM_STATUS, ALARM_ACTIVATED_TIME, GONOW, GONOW_MSG, ALARM_REPORT, ALARM_DURATION, START_ROUTINE
     if opt == 1 and MAINTENANCE_MODE is False and ALARM_STATUS is False and RENT_STATUS is False and START_ROUTINE is False:
-        # ACTIVATE ALARM
+        # ACTIVATE ALARM - checks RENT_STATUS
         print(" !! ALARM ACTIVATED -- ")
         ALARM_STATUS = True
         ALARM_ACTIVATED_TIME = time.time()
         ALARM_MSG = str(msg)
-        # Lock Trailer ------------
         lock_trailer(1, False)
         SIREN_TRAILER.value(1)
         GONOW = True
         GONOW_MSG = "CMD:ALARM:" + str(msg)
         ALARM_REPORT = 1
-    if opt == 2:
+    elif opt == 2:
         print(" !! ALARM DE-ACTIVATED -- ", end="")
         ALARM_STATUS = False
         ALARM_ACTIVATED_TIME = 0
         ALARM_MSG = ""
-        # Turn Off Siren
         SIREN_TRAILER.value(0)
         GONOW = True
         GONOW_MSG = "CMD:UNALARM:" + str(msg)
@@ -644,18 +667,14 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                             GONOW_MSG = "Toolbox OPENED"
                             print(f"  !!  {GONOW_MSG} !!")
                             ALARM_DURATION = 90
-                            alarm(ALARM_CMD_ON, GONOW_MSG)
+                            alarm_toolbox(ALARM_CMD_ON, GONOW_MSG)
                         else:
                             GONOW = True
                             GONOW_MSG = "Toolbox CLOSED"
                             print(f"  !!  {GONOW_MSG} !!")
-                            alarm(ALARM_CMD_OFF, GONOW_MSG)
+                            alarm_toolbox(ALARM_CMD_OFF, GONOW_MSG)
                     TOOLBOX_STATE = current_toolbox_value
                 del current_toolbox_value
-
-                if TOOLBOX_STATE == 0 and ALARM_STATUS is False and STARTUP is False and RENT_STATUS is False:  #Toolbox is OPEN
-                    ALARM_DURATION = 180
-                    alarm(ALARM_CMD_ON, "TOOLBOX OPENED")
 
                 current_NOTICE_lock_val = LOCK_NOTICE.value()
                 if current_NOTICE_lock_val != LOCK_STATE:
@@ -687,9 +706,6 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                     alarm(ALARM_CMD_ON, GONOW_MSG + " and not Rented | Alarm Activated | {}  status".format(RENT_STATUS))
                             print(f" !! Plug Status : {GONOW_MSG}")
                         PLUGGED_STATE = current_plug_status
-                if PLUGGED_STATE != 0 and ALARM_STATUS is False and STARTUP is False and RENT_STATUS is False:  #plugged and hot
-                    ALARM_DURATION = 180
-                    alarm(ALARM_CMD_ON, " ++ Trailer IS Plugged into vehicle: HOT and not Rented")
                 del current_plug_status
 
                 #### END of Listening for GPIO events --------------------------------
