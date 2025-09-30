@@ -92,6 +92,14 @@ LOCK_CMD_LOCK = 1
 LOCK_CMD_UNLOCK = 2
 ALARM_CMD_ON = 1
 ALARM_CMD_OFF = 2
+
+# Message constants for memory efficiency
+MSG_LOCK_SUCCESS = " Successful <<<<  LOCK Complete"
+MSG_UNLOCK_SUCCESS = " Successful  <<<<   Unlock Complete"
+MSG_LOCK_STATE = " | -- Current Lock State: "
+CMD_RENT_STATUS = '{"command":"rent_status"}'
+CMD_CORAL_INFO = '{"command":"coral_info"}'
+CMD_MTC_STATUS = '{"command":"mtc_status"}'
 print(" Done")
 
 # Setup I2c Bus ########################################
@@ -175,17 +183,17 @@ def lock_trailer(opt, siren):
         time.sleep(LOCK_PULSE)
         UNLOCK_TRAILER.value(0)
         if siren: beep(2, SIREN_PULSE)
-        print(" Successful  <<<<   Unlock Complete", end="")
+        print(MSG_UNLOCK_SUCCESS, end="")
     elif opt == 1:
         LOCK_TRAILER.value(1)
         time.sleep(LOCK_PULSE)
         LOCK_TRAILER.value(0)
         if START_ROUTINE is False:
             if siren: beep(1, SIREN_PULSE)
-        print(" Successful <<<<  LOCK Complete", end="")
+        print(MSG_LOCK_SUCCESS, end="")
 
     LS = "LOCKED" if LOCK_NOTICE.value() == 0 else "UNLOCKED"
-    print(f" | -- Current Lock State: {LS}", end="")
+    print(MSG_LOCK_STATE + LS, end="")
 
     return 0
 
@@ -469,12 +477,12 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
     go_data.update(conn.signal())
 
     # send initial GPS and CELL data
-    if GPS_PRESENT and len(str(gps_data)) > 45: go_data.update(json.loads(gps_data))
+    if GPS_PRESENT and isinstance(gps_data, dict): go_data.update(gps_data)
 
     ## Retrieve Trailer Information
-    publish_message(client, topic, json.dumps({"command": "rent_status"}))
-    publish_message(client, topic, json.dumps({"command": "coral_info"}))
-    publish_message(client, topic, json.dumps({"command": "mtc_status"}))
+    publish_message(client, topic, CMD_RENT_STATUS)
+    publish_message(client, topic, CMD_CORAL_INFO)
+    publish_message(client, topic, CMD_MTC_STATUS)
     client.check_msg()
 
     # Main Routine initial variables   -----------------------------------------------
@@ -699,9 +707,9 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                 if GPS_PRESENT is False: GPS_PRESENT = gps.test_gps()
                                 main_loop_timer_cnt = 0
                                 if GONOW_MSG == "UPDATE":
-                                    publish_message(client, topic, '{"command":"rent_status"}')
-                                    publish_message(client, topic, '{"command":"coral_info"}')
-                                    publish_message(client, topic, '{"command":"mtc_status"}')
+                                    publish_message(client, topic, CMD_RENT_STATUS)
+                                    publish_message(client, topic, CMD_CORAL_INFO)
+                                    publish_message(client, topic, CMD_MTC_STATUS)
                                 if GONOW_MSG == "RESETDATA":
                                     publish_message(client, topic, '{"command":"resetdata"}')
 
@@ -715,15 +723,13 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                 print(" XX 234C PUBLISH DATA FAILED TRY Again. Checking Connection")
                                 check_connection()
                         del gd
-                        gc.collect()
 
                         #Load GPS data
                         if GPS_PRESENT:
                             gps_data = gps.read_gps()
-                            gc.collect()
                             GPS_GOOD = False
 
-                            if len(str(gps_data)) > 45:
+                            if isinstance(gps_data, dict):
                                 print(f" -- GPS has a FIX: ANTENNA is {gps.gps_ant}: ", end="")
                                 sats = float(gps.get_sats())
                                 hdop = float(gps.get_hdop())
@@ -749,10 +755,7 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                     print(f"    >> {hdop_msg} signal hdop: {hdop} sats: {sats} lat: {clat} lon: {clon}", end="")
                                     del clat, clon
 
-                                    try:
-                                        go_data.update(json.loads(gps_data))
-                                    except:
-                                        print(f"  -- GPS FAIL Failed to load GPS JSON: {gps_data}")
+                                    go_data.update(gps_data)
                                     try:
                                         go_data["gps_antenna"] = gps.gps_ant
                                     except :
@@ -784,7 +787,6 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                             alarm(1, "Trailer In Motion and not Rented")
 
                                     del gps_speed, gps_distance
-                                    gc.collect()
                                     # Has Trailer Left Coral
                                     if CORAL_LON != "" and CORAL_LAT != "":
                                         gps_distance_from_coral = int(gps.gps_dif_distance(CORAL_LAT, CORAL_LON))
@@ -827,7 +829,7 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                         del gps_distance_from_coral, coral_held
                                     else:
                                         print(" -- NO CORRAL INFO: requesting corral info")
-                                        publish_message(client, topic, '{"command":"coral_info"}')
+                                        publish_message(client, topic, CMD_CORAL_INFO)
                             else:
                                 #GPS DATA is BAD....
                                 pass

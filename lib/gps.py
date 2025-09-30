@@ -243,18 +243,20 @@ class moo_serial:
         return '{0:.6f}'.format(Converted)
 
     def _gps_string_Data(self):
-        return '{"gps_time":"' + self.gps_time + \
-               '","gps_date":"' + self.gps_date + \
-               '","gps_lat":"' + self.gps_lat + \
-               '","gps_lon":"' + self.gps_lon + \
-               '","gps_bearing":"' + self.gps_bearing + \
-               '","gps_speed":"' + self.gps_speed + \
-               '","gps_rw_time":"' + self.gps_rw_time + \
-               '","gps_rw_status":"' + self.gps_rw_status + \
-               '","gps_rw_dt":"' + self.gps_rw_dt + \
-               '","gps_sats":"' + str(self.SATS) + \
-               '","gps_hdop":"' + str(self.HDOP) + \
-               '","gps_alt":"' + str(self.gps_alt) + '"}'
+        return {
+            "gps_time": self.gps_time,
+            "gps_date": self.gps_date,
+            "gps_lat": self.gps_lat,
+            "gps_lon": self.gps_lon,
+            "gps_bearing": self.gps_bearing,
+            "gps_speed": self.gps_speed,
+            "gps_rw_time": self.gps_rw_time,
+            "gps_rw_status": self.gps_rw_status,
+            "gps_rw_dt": self.gps_rw_dt,
+            "gps_sats": self.SATS,
+            "gps_hdop": self.HDOP,
+            "gps_alt": self.gps_alt
+        }
 
     def _converKnotstoMile(self, knots):
         return str(round(float(knots) * 1.15078, 1))
