@@ -313,6 +313,9 @@ def UNRENT_TRAILER():
     global RENT_STATUS
     try:
         print(" -- UN-RENT Trailer -- ")
+        # Clear any non-toolbox alarms before changing rental state
+        if ALARM_STATUS:
+            alarm(ALARM_CMD_OFF, "Clearing rental-dependent alarms before un-renting")
         # Lock Hitch
         lock_trailer(1, True)
         RENT_STATUS = False
@@ -397,7 +400,10 @@ def sub_cb(topic, msg):
                 elif request == 'RENTED':
                     print(" -- TCMD: RENTED: Open For Business")
                     RENT_STATUS = True
-                    if ALARM_STATUS: alarm(ALARM_CMD_OFF, "Disarm | Rental is Active")  # Use constant
+                    # Only disarm rental-dependent alarms (plug/motion/coral)
+                    # Toolbox alarm persists during rental
+                    if ALARM_STATUS:
+                        alarm(ALARM_CMD_OFF, "Disarm rental-dependent alarms | Rental is Active")
                 elif request == 'NOTRENTED':
                     print(" -- TCMD: NOTRENTED: SECURING TRAILER |")
                     UNRENT_TRAILER()
