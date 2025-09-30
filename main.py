@@ -699,17 +699,17 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                 if GPS_PRESENT is False: GPS_PRESENT = gps.test_gps()
                                 main_loop_timer_cnt = 0
                                 if GONOW_MSG == "UPDATE":
-                                    publish_message(client, topic, str(json.loads('{"command":"rent_status"}')))
-                                    publish_message(client, topic, str(json.loads('{"command":"coral_info"}')))
-                                    publish_message(client, topic, str(json.loads('{"command":"mtc_status"}')))
+                                    publish_message(client, topic, '{"command":"rent_status"}')
+                                    publish_message(client, topic, '{"command":"coral_info"}')
+                                    publish_message(client, topic, '{"command":"mtc_status"}')
                                 if GONOW_MSG == "RESETDATA":
-                                    publish_message(client, topic, str(json.loads('{"command":"resetdata"}')))
+                                    publish_message(client, topic, '{"command":"resetdata"}')
 
                                 #go_data = json.loads(network_info)
                                 go_data = network_info_dict.copy()
                                 go_data.update({"build_no": BUILD_NO, "build_date": BUILD_DATE})
                                 go_data.update(conn.signal())
-                                go_data.update(json.loads('{"cell_strength":"' + get_cell_strength() + '"}'))
+                                go_data["cell_strength"] = get_cell_strength()
                                 gd = False
                             except:
                                 print(" XX 234C PUBLISH DATA FAILED TRY Again. Checking Connection")
@@ -754,7 +754,7 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                     except:
                                         print(f"  -- GPS FAIL Failed to load GPS JSON: {gps_data}")
                                     try:
-                                        go_data.update(json.loads('{"gps_antenna":"' + str(gps.gps_ant) + '"}'))
+                                        go_data["gps_antenna"] = gps.gps_ant
                                     except :
                                         print(f"  -- GPS FAIL ANTENNA to load GPS JSON: {gps.gps_ant}")
 
@@ -789,12 +789,12 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                     if CORAL_LON != "" and CORAL_LAT != "":
                                         gps_distance_from_coral = int(gps.gps_dif_distance(CORAL_LAT, CORAL_LON))
                                         print(f"    >> Coral Distance is {gps_distance_from_coral} ft", end="")
-                                        go_data.update(json.loads('{"coral_distance":' + str(gps_distance_from_coral) + '}'))
+                                        go_data["coral_distance"] = gps_distance_from_coral
                                         print(f" | ", end="")
 
                                         if gps_distance_from_coral > float(CORAL_RAD):
                                             print(f" !! | ", end="")
-                                            coral_held = '{"coral_held":' + str(0) + '}'
+                                            coral_held = 0
                                             print(" | OUT of Coral", end="")
                                             if MAINTENANCE_MODE is False and RENT_STATUS is False:
                                                 print(" | Second Corral Check ", end="")  # Double Check
@@ -812,7 +812,7 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                                         print("  -- 2nd Check Failed. Trailer in Corral")
                                                 del gps_data2, hdop, sats
                                         else:
-                                            coral_held = '{"coral_held":' + str(1) + '}'
+                                            coral_held = 1
                                             if ALARM_STATUS and TOOLBOX_TRIGGER.value() != 0 and PLUGGED_HOT.value() == 0:  # Tool box is closed and not plugged into car
                                                 alarm(2,
                                                       "Trailer ENTERED corral. DE-Activating Alarm, toolbox is closed and not plugged into vehicle")
@@ -820,48 +820,41 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                                     " | DISARMING ALARM |  IN CORAL - Toolbox is Closed - Not Plugged into vehicle ",
                                                     end="")
                                             print(" | IN Coral", end="")
-                                        go_data.update(json.loads(coral_held))
-                                        acoral_name_a = '{"coral":"' + CORAL_NAME + '"}'
-                                        acoral_rad = '{"coral_radius":' + str(CORAL_RAD) + '}'
-                                        go_data.update(json.loads(acoral_name_a))
-                                        go_data.update(json.loads(acoral_rad))
+                                        go_data["coral_held"] = coral_held
+                                        go_data["coral"] = CORAL_NAME
+                                        go_data["coral_radius"] = CORAL_RAD
                                         print(" <<  CORAL DONE")
-                                        del gps_distance_from_coral, coral_held, acoral_name_a, acoral_rad
+                                        del gps_distance_from_coral, coral_held
                                     else:
                                         print(" -- NO CORRAL INFO: requesting corral info")
-                                        publish_message(client, topic, str(json.loads('{"command":"coral_info"}')))
+                                        publish_message(client, topic, '{"command":"coral_info"}')
                             else:
                                 #GPS DATA is BAD....
                                 pass
 
                         # Load Lock State
                         LOCK_STATUS = "LOCKED" if LOCK_NOTICE.value() == 0 else "UNLOCKED"
-                        locka = '{"lock_status":"' + LOCK_STATUS + '"}'
-                        go_data.update(json.loads(locka))
+                        go_data["lock_status"] = LOCK_STATUS
                         print(f" -- Lock State: {LOCK_STATUS}", end="")
-                        del locka
 
                         # Load Plug status
                         PLUG_STATUS = "HOT" if PLUGGED_HOT.value() == 1 else "COLD"
-                        pluga = '{"plugged":"' + PLUG_STATUS + '"}'
-                        go_data.update(json.loads(pluga))
+                        go_data["plugged"] = PLUG_STATUS
                         print(f" | Plug Status: {PLUG_STATUS}", end="")
-                        del pluga, PLUG_STATUS
+                        del PLUG_STATUS
 
                         # Load TOOLBOX OPEN or CLOSED
                         TOOLBOX_STATUS = "OPEN" if TOOLBOX_TRIGGER.value() == 0 else "CLOSED"
-                        tbxa = '{"toolbox":"' + TOOLBOX_STATUS + '"}'
-                        go_data.update(json.loads(tbxa))
+                        go_data["toolbox"] = TOOLBOX_STATUS
                         print(f" | Toolbox Status: {TOOLBOX_STATUS} |")
-                        del tbxa, TOOLBOX_STATUS
+                        del TOOLBOX_STATUS
 
                         # Load alarm status
-                        go_data.update(json.loads('{"alarm":"' + str(ALARM_STATUS) + '"}'))
+                        go_data["alarm"] = str(ALARM_STATUS)
 
                         # Load modem temperature data
                         modem_temp = get_temp()
-                        tempa = '{"temp_modem":"' + str(modem_temp) + '"}'
-                        go_data.update(json.loads(tempa))
+                        go_data["temp_modem"] = modem_temp
 
 
                         ### Exhaust Heat CHECK
@@ -879,61 +872,53 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                             print(f" -- Siren status: {SIREN_TRAILER.value()}  ... not active ...")
 
                         fanv = "Running" if FAN_STATUS else "Stopped"
-                        go_data.update(json.loads('{"fan":"' + fanv + '"}'))
-                        del modem_temp, tempa, fanv
+                        go_data["fan"] = fanv
+                        del modem_temp, fanv
 
                         # Load Start Data
-                        go_data.update(json.loads('{"started":"' + str(START_TIME) + '"}'))
-                        go_data.update(json.loads('{"started_main":"' + str(START_TIME_MainRoutine) + '"}'))
-                        go_data.update(json.loads('{"started_sub":"' + str(START_TIME_SubRoutine) + '"}'))
+                        go_data["started"] = START_TIME
+                        go_data["started_main"] = START_TIME_MainRoutine
+                        go_data["started_sub"] = START_TIME_SubRoutine
 
 
                         # Adjust reporting Frequency and load new freduency data
                         if PLUGGED_HOT.value() != 0:
                             # if PLUGGED into vehicle. REPORT MAX
-                            go_data.update(json.loads('{"reporting_freq":"' + str(dynamic_reporting(100)) + '"}'))
+                            go_data["reporting_freq"] = dynamic_reporting(100)
                         else:
-                            if GPS_PRESENT: go_data.update(
-                                json.loads('{"reporting_freq":"' + str(dynamic_reporting(gps.current_speed)) + '"}'))
+                            if GPS_PRESENT:
+                                go_data["reporting_freq"] = dynamic_reporting(gps.current_speed)
 
-                        go_data.update(json.loads('{"online":' + str("1") + '}'))
-                        go_data.update(json.loads('{"error_last_msg":"' + LAST_ERR_MSG + '"}'))
+                        go_data["online"] = 1
+                        go_data["error_last_msg"] = LAST_ERR_MSG
 
 
                         # I2C sensors  ----------------------------------------------------------------------------------
                         # Load ambient temperature data from I2C bus
-                        p_volt = '{"pwr_volt":' + str(sensors.voltage()) + '}'
-                        go_data.update(json.loads(p_volt))
-                        p_curr = '{"pwr_current":' + str(sensors.current()) + '}'
-                        go_data.update(json.loads(p_curr))
-                        p_power = '{"pwr_power":' + str(sensors.power()) + '}'
-                        go_data.update(json.loads(p_power))
-                        temp_ambi = '{"temp_ambi":' + str(sensors.temperature()) + '}'
-                        go_data.update(json.loads(temp_ambi))
-                        print(f" -- Power Check | {p_volt} {p_curr} {p_power} | {temp_ambi}")
-                        del p_volt, p_curr, p_power, temp_ambi
+                        go_data["pwr_volt"] = sensors.voltage()
+                        go_data["pwr_current"] = sensors.current()
+                        go_data["pwr_power"] = sensors.power()
+                        go_data["temp_ambi"] = sensors.temperature()
+                        print(f" -- Power Check | Volt:{go_data['pwr_volt']} Curr:{go_data['pwr_current']} Pwr:{go_data['pwr_power']} Temp:{go_data['temp_ambi']}")
                         ###  End of I2C Sensors ___________________________________________________________________________
 
-                        sGONOW = '{"GONOW":"TRIGGERED"}' if GONOW else '{"GONOW":"NOT TRIGGERED"}'
-                        go_data.update(json.loads(sGONOW))
+                        go_data["GONOW"] = "TRIGGERED" if GONOW else "NOT TRIGGERED"
+                        go_data["GONOW_MSG"] = GONOW_MSG
 
-                        sGONOW_MSG = '{"GONOW_MSG":"' + str(GONOW_MSG) + '"}'
-                        go_data.update(json.loads(sGONOW_MSG))
-
-                        if GONOW: print(" -- GONOW_MSG: " + sGONOW_MSG)
+                        if GONOW: print(f" -- GONOW_MSG: {GONOW_MSG}")
                         # END GO NOW Status --------------------------------------------------------------------------------
 
                         # Json data Size
-                        go_data.update(json.loads('{"size":' + str(get_size(str(go_data))) + '}'))
+                        go_data["size"] = get_size(str(go_data))
                         # Device ID
-                        go_data.update(json.loads('{"device":' + str(modem) + '}'))
-                        go_data.update(json.loads('{"apn":"' + str(apn) + '"}'))
+                        go_data["device"] = modem
+                        go_data["apn"] = apn
 
                         ## Clean and Report memory usage
                         gc.collect()
                         cur_perc_mem = int((gc.mem_alloc() / 64000) * 100)
                         print(" -- MEMORY Usage:{}% ".format(cur_perc_mem), )
-                        go_data.update(json.loads('{"memory_pct ":' + str(cur_perc_mem) + '}'))
+                        go_data["memory_pct "] = cur_perc_mem
                         del cur_perc_mem
 
                         # Send Data to Firebase
@@ -957,8 +942,7 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
 
                             del go_data
                         else:
-                            print(" -- Counter: " + str(cntr) + " Run Time: " + str(Run_Time) + " Next run in: " + str(Run_Time - cntr) + " secs")
-                            print(f" -- {get_current_time()} | Build: {BUILD_NO} | IMEI: {imei} | Phone: {phone_no} | Rented: {"YES" if RENT_STATUS == True else "No"} | Maintenance: {MAINTENANCE_MODE}")
+                            print(f" -- Counter: {cntr}/{Run_Time}")
                             cell_string()
 
                     ### END of LOOP #################
