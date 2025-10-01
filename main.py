@@ -329,17 +329,42 @@ def CORRAL_UPDATE_INFO(payload_data):
     try:
         coral_parts = payload_data.split("|")
         if len(coral_parts) >= 5:
-            CORAL_NAME = str(coral_parts[0])
-            CORAL_LAT = float(coral_parts[1])  # Potential ValueError
-            CORAL_LON = float(coral_parts[2])  # Potential ValueError
-            CORAL_RAD = float(coral_parts[3])  # Potential ValueError
-            CORAL_ADDR = str(coral_parts[4])
+            # Parse and validate FIRST, update globals SECOND (atomic update)
+            name = str(coral_parts[0])
+            lat = float(coral_parts[1])
+            lon = float(coral_parts[2])
+            rad = float(coral_parts[3])
+            addr = str(coral_parts[4])
+
+            # Validate ranges
+            if not (-90 <= lat <= 90):
+                print(f" XX CORAL: Invalid latitude {lat} (must be -90 to 90)")
+                return False
+            if not (-180 <= lon <= 180):
+                print(f" XX CORAL: Invalid longitude {lon} (must be -180 to 180)")
+                return False
+            if rad <= 0:
+                print(f" XX CORAL: Invalid radius {rad} (must be > 0)")
+                return False
+
+            # All valid - now update globals atomically
+            CORAL_NAME = name
+            CORAL_LAT = lat
+            CORAL_LON = lon
+            CORAL_RAD = rad
+            CORAL_ADDR = addr
             print(" -- | Coral Info Received: Name: {}, Address: {}, Radius: {} ft, Lat: {}, Lon: {}".format(
                     CORAL_NAME, CORAL_ADDR, CORAL_RAD, CORAL_LAT, CORAL_LON))
+            return True
         else:
-            print(f" XX MQTT - CORAL: (expected 5 parts): ({payload_data})", end="")
+            print(f" XX MQTT - CORAL: Expected 5 parts, got {len(coral_parts)}")
+            return False
+    except ValueError as e:
+        print(f" XX CORAL: Invalid number format: {e}")
+        return False
     except Exception as e:
-        print(f" -- Coral Update Info Error: {e}")
+        print(f" XX CORAL: Error: {e}")
+        return False
 
 def maintenance_update(payload_data):
     global MAINTENANCE_MODE
