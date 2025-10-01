@@ -145,9 +145,9 @@ def check_sms(c):
     #         (timestamp(msg['timestamp']), msg['sender'], msg['message']))
     return 1
 
-def beep(cycles, pulse_length):
+def beep(cycles, pulse_length, force=False):
     global START_ROUTINE, START_ROUTINE_Time
-    if START_ROUTINE is False:
+    if START_ROUTINE is False or force:
         x = 1
         while x <= cycles:
             SIREN_TRAILER.value(1)
@@ -411,7 +411,7 @@ def sub_cb(topic, msg):
                     network.Cellular().shutdown(reset=True)
                     xbee.atcmd("FR")
                 elif request == "BEEP":
-                    beep(4, .25)
+                    beep(4, .25, force=True)
                 elif request == "UPDATE":
                     GONOW = True
                     GONOW_MSG = "UPDATE"
