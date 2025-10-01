@@ -346,10 +346,11 @@ def maintenance_update(payload_data):
     if payload_data == "1":
        MAINTENANCE_MODE = True
        print(" -- Entering Maintenance Mode.  Disarming Alarm")
-       if ALARM_STATUS: alarm(ALARM_CMD_OFF,"Entering Maintenance mode and Disarming Alarm")  # Use constant
-       alarm(ALARM_CMD_OFF, "MTC ALARMOFF")  # Use constant
+       if ALARM_STATUS:
+           alarm(ALARM_CMD_OFF, "Entering Maintenance mode and Disarming Alarm")
+           alarm_toolbox(ALARM_CMD_OFF, "Entering Maintenance mode and Disarming Toolbox Alarm")
        beep(3, .2)
-    elif payload_data == "0":  # Use elif for mutually exclusive conditions
+    elif payload_data == "0":
        MAINTENANCE_MODE = False
        print(" -- Exiting Maintenance Mode.  ")
        beep(2, 1)
@@ -803,7 +804,7 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                             print(f"      Trailer Not locked while in motion |  LOCKING TRAILER |  STATUS: {LOCK_STATE}", end="")
                                             lock_trailer(1,False)
                                             print(f" UPDATED STATUS: {LOCK_STATE}")
-                                        if not RENT_STATUS:
+                                        if not RENT_STATUS and not MAINTENANCE_MODE:
                                             print("  !!WARNING!! ---- Trailer in motion and not Rented moving @: {}mph".format(
                                                 gps_speed))
                                             alarm(1, "Trailer In Motion and not Rented")
