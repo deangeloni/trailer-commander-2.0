@@ -136,3 +136,18 @@ Files must be uploaded to the XBee module via:
 - Blocking operations must be minimized
 - UART GPS reads timeout after 10 seconds
 - Main loop runs every 1 second checking for events
+
+## TODO List
+
+### Lock Mechanism Improvements
+- [ ] Verify LOCK_NOTICE state after lock/unlock commands
+- [ ] Implement retry logic if lock fails to engage (2-3 attempts)
+- [ ] Send alert/alarm if lock fails after retries
+- [ ] Return actual success/failure status from lock_trailer() function
+
+### Data Cleanup
+- [ ] Remove dead "motion" field (hardcoded to "0")
+- [ ] Remove redundant "online" field (always 1)
+- [ ] Remove or update "error_last_msg" field (never updated during runtime)
+- [ ] Fix typo: "memory_pct " → "memory_pct" (trailing space)
+- [ ] Evaluate if "command": "status" is needed in telemetry payloads

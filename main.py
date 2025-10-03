@@ -7,8 +7,8 @@ from i2c import i2c_sensors
 
 
 print(" ***** Starting from the top", end="")
-BUILD_NO = "104F.1"
-BUILD_DATE = "07-12-2025"
+BUILD_NO = "205A.1"
+BUILD_DATE = "10-02-2025"
 
 # endpoint parameters.
 SERVER = "mqtt.moovalot.com"
@@ -191,6 +191,9 @@ def lock_trailer(opt, siren):
         if START_ROUTINE is False:
             if siren: beep(1, SIREN_PULSE)
         print(MSG_LOCK_SUCCESS, end="")
+
+    # Allow time for mechanical movement before reading feedback
+    time.sleep(0.5)
 
     LS = "LOCKED" if LOCK_NOTICE.value() == 0 else "UNLOCKED"
     print(MSG_LOCK_STATE + LS, end="")
@@ -505,7 +508,7 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
 
     network_info_dict = {
         "command": "status", "phone": phone_no, "ip": ip, "dns": dns,
-        "imei": imei, "iccid": iccid, "freq": freq, "motion": "0"
+        "imei": imei, "iccid": iccid, "freq": freq, "motion": 0
     }
 
     ##### Display phone and GPS data  ######################################################################
@@ -825,6 +828,7 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                     print(f"    >> Checking Speed and Distance speed {gps_speed}: Distance Traveled: {gps_distance} ft")
                                     if gps_speed > 15 and gps_distance > 450:
                                         print("   >> Trailer in motion: ")
+                                        go_data["motion"] = 1
                                         if LOCK_STATE != 0:
                                             print(f"      Trailer Not locked while in motion |  LOCKING TRAILER |  STATUS: {LOCK_STATE}", end="")
                                             lock_trailer(1,False)
@@ -833,6 +837,8 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                             print("  !!WARNING!! ---- Trailer in motion and not Rented moving @: {}mph".format(
                                                 gps_speed))
                                             alarm(1, "Trailer In Motion and not Rented")
+                                    else:
+                                        go_data["motion"] = 0
 
                                     del gps_speed, gps_distance
                                     # Has Trailer Left Coral
@@ -940,7 +946,6 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                                 go_data["reporting_freq"] = dynamic_reporting(gps.current_speed)
 
                         go_data["online"] = 1
-                        go_data["error_last_msg"] = LAST_ERR_MSG
 
 
                         # I2C sensors  ----------------------------------------------------------------------------------
@@ -968,7 +973,7 @@ def Main_Routine(conn, ip, dns, phone_no,modem, apn, imei, iccid, freq, mport=SV
                         gc.collect()
                         cur_perc_mem = int((gc.mem_alloc() / 64000) * 100)
                         print(" -- MEMORY Usage:{}% ".format(cur_perc_mem), )
-                        go_data["memory_pct "] = cur_perc_mem
+                        go_data["memory_pct"] = cur_perc_mem
                         del cur_perc_mem
 
                         # Send Data to Firebase
@@ -1018,7 +1023,6 @@ while True:
         START_TIME = timestamp()
         START_TIME_RAW = time.time()
         conn = network.Cellular()
-        LAST_ERR_MSG = ""
 
         if 'err.txt' in os.listdir('.'):
             print(" XX Err File Found : ", end="")
